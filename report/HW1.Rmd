@@ -1,0 +1,102 @@
+---
+title: "HW1"
+author: "Astghik"
+date: '2024-10-16'
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+# install.packages("readxl")
+# install.packages("cli")
+# install.packages("fansi")
+# install.packages("minpack.lm")
+# install.packages("ggplot2")
+#install.packages("fastmap")
+
+
+```
+
+Innovation: The Studio Buds + (https://time.com/collection/best-inventions-2023/6327223/beats-studio-buds/)
+Look like product: Wire headphones
+The Studio Buds + offer advanced features like active noise cancellation (ANC), enhanced battery life, and wireless connectivity—making them more suited for the modern, on-the-go consumer. In contrast, traditional wired headphones rely on a direct physical connection for sound quality, which can be more reliable in certain settings (no interference or battery drain), but lack the mobility and convenience of wireless technology.
+
+From a market impact perspective, wired headphones have been a staple for decades, appealing to audiophiles for their consistent performance. However, wireless options like the Studio Buds + dominate today’s market by catering to consumers who prioritize convenience and cutting-edge features like Bluetooth, portable charging, and futuristic aesthetics. This contrast highlights how the Studio Buds + build on the foundation of wired headphones, offering more in terms of portability and innovative design.
+
+
+
+```{r}
+library(readxl)
+library(minpack.lm)  
+
+data <- read_excel("data.xlsx")
+print(data)
+sales <- data$shipments  
+t <- 1:length(sales)
+
+bass_m <- nlsLM(sales ~ m * (((p + q)^2 / p) * exp(-(p + q) * t)) / ((1 + (q / p) * exp(-(p + q) * t))^2),
+                          start = list(m = sum(sales), p = 0.02, q = 0.4),
+                          control = nls.lm.control(maxiter = 100))
+
+summary(bass_m)
+
+```
+
+
+To calculate the market potential for "Stand-out Headphones," I used the estimated global headphone market size of $28 billion in 2022 and divided it by an assumed average selling price (ASP) of $100 per pair of headphones. This gave an estimate of 280 million units sold in the market. To estimate potential customers for the new headphones, I assumed this innovation could capture 1-3% market share. Applying this to the total market size will be between 2.8 to 8.4 million customers. I choose 5.6 million.
+
+```{r}
+library(ggpubr)
+
+
+m <- 5600000
+p <- coef(bass_m)["p"]
+q <- coef(bass_m)["q"]
+
+pred <- m * (((p + q)^2 / p) * exp(-(p + q) * t)) / ((1 + (q / p) * exp(-(p + q) * t))^2)
+pred_df <- data.frame(t = t, pred = pred)
+
+pred1 <- m * (1 - exp(-(p + q) * t)) / (1 + (q / p) * exp(-(p + q) * t))
+pred1_df <- data.frame(t = t, pred = pred1)
+
+p1 <- ggplot(pred_df, aes(x = t, y = pred)) + geom_line() + ggtitle("Number of adoptions at time t")
+
+p2 <- ggplot(pred1_df, aes(x = t, y = pred)) + geom_line() + ggtitle("Cumulative adoptions over time")
+
+ggarrange(p1, p2)
+```
+
+```{r}
+bass_model <- function(t, p, q, M) {
+  exp_term <- exp(-(p + q) * t)
+  return(m * (((p + q)^2 / p) * exp_term) / (1 + (q / p) * exp_term)^2)
+}
+
+m <- 5600000  
+p <- coef(bass_m)["p"]
+q <- coef(bass_m)["q"]
+years <- 1:10  
+
+adopters <- bass_model(years, p, q, M)
+
+df <- data.frame(Year = years, Adopters = round(adopters))
+
+plot(df$Year, df$Adopters, type = "o", col = "purple", xlab = "Years", ylab = "Number of Adopters", 
+     main = "Predicted Diffusion of The Studio Buds +(Bass Model)")
+grid()
+print(df)
+
+df$Cumulative_Adopters <- cumsum(df$Adopters)
+
+print(df)
+
+```
+
+
